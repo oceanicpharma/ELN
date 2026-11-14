@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: a fixed instrument-style rail on the left, one working surface on the right. IDs are always monospaced. */
+:root{
+  --rail:#0F3D3E; --rail-ink:#DDEEEA; --rail-dim:#8FC7BF; --rail-on:#1B7F79;
+  --bg:#F3F7F6; --surface:#FFFFFF; --sunken:#E7F1EF; --line:#CFE1DD;
+  --ink:#16302F; --mute:#55706D; --accent:#14706A; --accent-ink:#FFFFFF;
+  --good-bg:#D5EEE6; --good:#11594F; --warn-bg:#FBEFD9; --warn:#7A4E08; --bad-bg:#F8DFD9; --bad:#93351F; --idle-bg:#E7ECEB; --idle:#4C605E;
+  --display:"Source Serif 4",Cambria,Georgia,serif; --body:"IBM Plex Sans",Calibri,Arial,sans-serif; --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1B1B; --surface:#142625; --sunken:#1C3331; --line:#2B4644; --ink:#E4F0EE; --mute:#9DB7B3; --accent:#3FB8AC; --accent-ink:#06211F;
+  --good-bg:#17403A; --good:#9FE3D2; --warn-bg:#46361A; --warn:#F5D08C; --bad-bg:#4A2419; --bad:#F7B7A5; --idle-bg:#263A38; --idle:#B3C8C5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1B1B; --surface:#142625; --sunken:#1C3331; --line:#2B4644; --ink:#E4F0EE; --mute:#9DB7B3; --accent:#3FB8AC; --accent-ink:#06211F;
+  --good-bg:#17403A; --good:#9FE3D2; --warn-bg:#46361A; --warn:#F5D08C; --bad-bg:#4A2419; --bad:#F7B7A5; --idle-bg:#263A38; --idle:#B3C8C5; color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
+*{box-sizing:border-box}
+#app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+#rail{background:var(--rail);color:var(--rail-ink);padding-block:18px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;align-self:start}
+.brand{background:#fff;border-radius:10px;padding:10px 12px;text-align:center}
+.brand img{display:block;width:100%;max-width:176px;margin:0 auto}
+.brand span{display:block;color:#0F3D3E;font-weight:700;font-size:13px;margin-top:3px}
+nav{display:flex;flex-direction:column;gap:3px}
+nav a{display:flex;justify-content:space-between;align-items:center;color:var(--rail-ink);text-decoration:none;padding:9px 11px;border-radius:8px;font-weight:500}
+nav a:hover{background:rgba(255,255,255,.08)}
+nav a.on{background:var(--rail-on);color:#fff;font-weight:600}
+nav a b{background:#E8A33D;color:#16302F;font-size:12px;border-radius:9px;padding:0 7px;line-height:18px}
+.who{margin-top:auto;font-size:13px;color:var(--rail-dim)}
+main{padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-width:0}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font:700 30px/1.15 var(--display);margin:0;text-wrap:balance}
+h2{font:600 16px/1.3 var(--body);margin:0}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.sub{color:var(--mute);margin:3px 0 0;max-width:68ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mono{font-family:var(--mono);font-size:.93em}
+a{color:var(--accent)}
+.btn{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-block;border-radius:6px;padding:1px 9px;font-size:13px;font-weight:600;background:var(--idle-bg);color:var(--idle);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.tw{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12.5px;color:var(--mute);font-weight:600;border-bottom:2px solid var(--line);padding:6px 9px;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:8px 9px;vertical-align:middle}
+tr.link{cursor:pointer}tr.link:hover td{background:var(--sunken)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--mute);min-width:0}
+label.f.w{grid-column:1/-1}
+input,textarea,select{font:15px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
+input[type=checkbox],input[type=radio]{width:auto}
+input[disabled],textarea[disabled],select[disabled]{background:var(--sunken);color:var(--ink);opacity:1}
+td input{min-width:84px}
+textarea{min-height:66px;resize:vertical}
+.calc{font-family:var(--mono);white-space:nowrap}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column}
+.stage:hover{border-color:var(--accent)}
+.stage b{font:700 30px/1.1 var(--display)}
+.stage span{color:var(--mute);font-size:13px}
+.note{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 12px}
+.empty{color:var(--mute);padding:18px;text-align:center;border:1px dashed var(--line);border-radius:8px}
+.scheme{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;color:#16302F}
+.scheme img{max-height:150px}
+.tests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tcard{border:1px solid var(--line);border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.log{display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--mute)}
+.chk{display:flex;gap:9px;align-items:center}
+.trail{display:flex;gap:8px;flex-wrap:wrap}
+.trail span{flex:1 1 110px;text-align:center}
+.sheet{background:#fff;color:#16302F;border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px;--line:#CFE1DD;--mute:#55706D;--ink:#16302F;--accent:#14706A;--idle-bg:#E7ECEB;--idle:#4C605E;--good-bg:#D5EEE6;--good:#11594F;--warn-bg:#FBEFD9;--warn:#7A4E08;--bad-bg:#F8DFD9;--bad:#93351F}
+.sheet .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--line);padding-bottom:10px}
+.sheet .top img{height:62px;max-width:45%}
+.two{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:18px}
+#toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--rail);color:#fff;padding:10px 16px;border-radius:9px;max-width:min(420px,calc(100vw - 32px));z-index:20}
+@media (max-width:820px){
+  #app{grid-template-columns:minmax(0,1fr)}
+  #rail{position:static;height:auto;flex-direction:column;gap:10px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .brand{max-width:170px}
+  nav{flex-direction:row;overflow-x:auto}
+  nav a{white-space:nowrap;gap:6px}
+  .who{display:none}
+  .two,.tests{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+
+</head><body>
+<div id="app">
+  <aside id="rail">
+    <div class="brand"><img src="data:image/jpeg;base64,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" alt="Oceanic Pharmachem logo"><span>R&amp;D Center</span></div>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="who" id="who"></div>
+  </aside>
+  <main id="main"><div class="wrap"><h1>Oceanic Lab Workflow</h1><p class="sub">Loading lab records. Entries, sample requests, LIMS samples and sample sheets will appear here.</p></div></main>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+const TESTS=["HPLC","LCMS","GCMS","NMR"];
+const TESTNAME={HPLC:"HPLC assay",LCMS:"LCMS",GCMS:"GCMS",NMR:"1H NMR"};
+const OUTCOMES=["Pending","Pass","Fail","Confirmed","Not confirmed"];
+const CHECKS=["Reaction image and SMILES are in the entry","Masses and lot numbers match the bench work","Calculations are checked by a second person","Raw data and balance printouts are linked"];
+const S={entries:{},requests:{},samples:{},loaded:{},images:{},busy:false,hash:"",me:{email:"",name:""},assets:true,readOnly:false,noDb:false,draft:null,dirty:false,stale:false,arm:null,failed:false};
+
+/* ---------- helpers ---------- */
+const $=(q,r=document)=>r.querySelector(q);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=v=>{const n=parseFloat(v);return Number.isFinite(n)?n:null};
+const fix=(n,d)=>n==null||!Number.isFinite(n)?"–":n.toFixed(d);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const now=()=>new Date().toISOString();
+const when=t=>{if(!t)return "";const d=new Date(t);return isNaN(d)?"":d.toLocaleString(undefined,{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})};
+const list=m=>Object.values(m).sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+const whoName=h=>h.by||"Someone";
+const safeUrl=u=>/^https:\/\//i.test(String(u||"").trim())?String(u).trim():"";
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,4000)}
+function fail(e){toast((e&&e.message)||"That didn't save. Check your connection, then try again.")}
+const chip=(t)=>{const c=/Signed|Done|Pass|Confirmed|Approved|issued|Received|Complete/.test(t)&&!/Not confirmed/.test(t)?"good":/Fail|Not confirmed/.test(t)?"bad":/Draft|Pending|Requested|Submitted|review|testing|Registered/.test(t)?"warn":"";return `<span class="chip ${c}">${esc(t)}</span>`};
+
+/* ---------- calculations ---------- */
+function calc(e){
+  const rows=(e.reagents||[]).map(r=>{const mass=num(r.mass),mw=num(r.mw);return {mmol:mass!=null&&mw?mass/mw*1000:null}});
+  const lim=rows[e.limiting|0]?rows[e.limiting|0].mmol:null;
+  rows.forEach(r=>r.equiv=r.mmol!=null&&lim?r.mmol/lim:null);
+  const pm=num(e.productMw),act=num(e.actualYield);
+  const theo=lim!=null&&pm?lim*pm/1000:null;
+  return {rows,lim,theo,pct:theo&&act!=null?act/theo*100:null};
+}
+function nextId(prefix,map){
+  const y=new Date().getFullYear(),p=`${prefix}-${y}-`;let max=0;
+  for(const k of Object.keys(map)) if(k.startsWith(p)){const n=parseInt(k.slice(p.length,p.length+4),10);if(n>max)max=n}
+  return p+String(max+1).padStart(4,"0");
+}
+function nextSample(entryId){let n=0;for(const r of Object.values(S.requests)) if(r.entryId===entryId)n++;return `${entryId}-S${String(n+1).padStart(2,"0")}`}
+function sampleStatus(s){
+  if(s.reportIssued)return "Report issued"; if(s.approved)return "Approved";
+  const t=Object.values(s.tests||{}),done=t.filter(x=>x.outcome&&x.outcome!=="Pending"&&x.result);
+  if(t.length&&done.length===t.length)return "Ready for review"; if(done.length)return "In testing"; return "Registered";
+}
+
+/* ---------- data ---------- */
+let SB=null;  // Supabase client: handles sign-in and direct file uploads
+async function api(fn,...a){
+  const {data:{session}}=await SB.auth.getSession();
+  if(!session){showLogin();throw new Error("Sign in to continue.")}
+  let r;try{r=await fetch("/api",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({fn,args:a})})}
+  catch(e){throw new Error("That didn't save. Check your connection, then try again.")}
+  const j=await r.json().catch(()=>({error:"The server did not answer. Try again."}));
+  if(r.status===401)showLogin(j.error);
+  if(!r.ok||j.error)throw new Error(j.error||"Request failed ("+r.status+")");
+  return j.result;
+}
+function showLogin(msg){
+  S.authed=false;$("#nav").innerHTML="";$("#who").textContent="";
+  $("#main").innerHTML=`<div class="wrap"><div class="panel" style="max-width:420px;margin:8vh auto 0">
+  <h1>Oceanic Lab Workflow</h1><p class="sub">Sign in with your lab account.</p>
+  <form data-form="login" class="form" style="grid-template-columns:1fr">
+  <label class="f">Email<input id="l-email" type="email" autocomplete="username" required></label>
+  <label class="f">Password<input id="l-pass" type="password" autocomplete="current-password"></label>
+  <button class="btn pri" type="submit">Sign in</button>
+  <button class="btn" type="button" data-act="magic-link">Email me a sign-in link instead</button>
+  </form><p class="sub" id="l-msg">${esc(msg||"")}</p></div></div>`;
+}
+async function boot(){
+  try{
+    const c=await (await fetch("/api?config")).json();
+    if(c.error)throw new Error(c.error);
+    SB=supabase.createClient(c.supabaseUrl,c.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  }catch(e){S.failed=true;S.failMsg=(e&&e.message)||"The app can't reach its server.";render();return}
+  SB.auth.onAuthStateChange((ev,session)=>{if(ev==="SIGNED_IN"&&session&&!S.authed){S.authed=true;S.failed=false;start()}if(ev==="SIGNED_OUT")showLogin("You are signed out.")});
+  const {data:{session}}=await SB.auth.getSession();
+  if(session){if(!S.authed){S.authed=true;start()}}else showLogin();
+}
+async function refresh(){
+  const r=JSON.parse(await api("getState"));S.me=r.me;S.entries=r.entries;S.requests=r.requests;S.samples=r.samples;
+  S.loaded={entries:1,requests:1,samples:1};S.failed=false;soft();
+}
+async function start(){
+  try{await refresh()}catch(e){S.failed=true;S.failMsg=e&&e.message;render();return}
+  if(!S.timer)S.timer=setInterval(()=>{if(S.authed&&!document.hidden&&!S.busy)refresh().catch(()=>{})},30000);
+}
+function soft(){const a=document.activeElement;if(S.dirty||(a&&a.closest&&a.closest("#main")&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){S.stale=true;navOnly();return}render()}
+
+/* ---------- routing ---------- */
+function route(){const h=S.hash||"";const m=h.match(/^(entry|sample|sheet)-(.+)$/);return m?{v:m[1],id:m[2]}:{v:h||"home"}}
+function autosave(){const d=S.draft;if(!S.dirty||!d||d.kind==="req"||!d.id)return;
+  const fn=d.tests?"saveSample":"saveEntry",c=d.tests?"samples":"entries";
+  api(fn,JSON.stringify(d)).then(j=>{const x=JSON.parse(j);S[c][x.id]=x;toast("Your changes were saved")}).catch(fail)}
+function go(h){autosave();S.dirty=false;S.draft=null;S.hash=h;render();window.scrollTo(0,0)}
+function navOnly(){
+  const r=route().v,tab={entry:"eln",sample:"lims",sheet:"sheets","new-request":"requests"}[r]||r;
+  const wait=list(S.requests).filter(x=>x.status==="Requested").length,rev=list(S.entries).filter(e=>e.status==="Submitted").length;
+  const items=[["home","Overview",0],["eln","ELN entries",rev],["requests","Sample requests",wait],["lims","LIMS tracker",0],["sheets","Sample sheets",0]];
+  $("#nav").innerHTML=items.map(([h,t,n])=>`<a href="#${h}" class="${tab===h?"on":""}"${tab===h?' aria-current="page"':""}>${t}${n?`<b>${n}</b>`:""}</a>`).join("");
+  $("#who").textContent=S.me.email?`Signed in as ${S.me.email}`:"";
+  if(S.authed)$("#nav").insertAdjacentHTML("beforeend",`<a href="#" data-act="sign-out">Sign out</a>`);
+}
+function render(){
+  S.stale=false;navOnly();const r=route(),m=$("#main");
+  if(S.noDb||S.failed){m.innerHTML=`<div class="wrap"><h1>Oceanic Lab Workflow</h1><div class="empty">${esc(S.failMsg||"Lab records can't load. Reload the page, and check you are signed in with your lab account.")}</div></div>`;return}
+  if(Object.keys(S.loaded).length<3){m.innerHTML=`<div class="wrap"><h1>Oceanic Lab Workflow</h1><p class="sub">Loading lab records. Entries, sample requests, LIMS samples and sample sheets will appear here.</p></div>`;return}
+  const v={home:vHome,eln:vEln,entry:vEntry,requests:vRequests,"new-request":vNewRequest,lims:vLims,sample:vSample,sheets:vSheets,sheet:vSheet}[r.v]||vHome;
+  m.innerHTML=`<div class="wrap">${S.readOnly?`<div class="note">You have view-only access. Ask the owner for Contributor access to add or change records.</div>`:""}${v(r.id)}</div>`;
+}
+
+/* ---------- overview ---------- */
+function vHome(){
+  const E=list(S.entries),R=list(S.requests),L=list(S.samples),st=L.map(sampleStatus);
+  const c=f=>st.filter(f).length;
+  const stages=[["Draft entries",E.filter(e=>e.status==="Draft").length,"eln"],["Entries to review",E.filter(e=>e.status==="Submitted").length,"eln"],["Samples to receive",R.filter(x=>x.status==="Requested").length,"lims"],["In testing",c(s=>s==="Registered"||s==="In testing"),"lims"],["Results to review",c(s=>s==="Ready for review"||s==="Approved"),"lims"],["Reports issued",c(s=>s==="Report issued"),"sheets"]];
+  const todo=[
+    ...E.filter(e=>e.status==="Submitted").map(e=>[`#entry-${e.id}`,e.id,"Review and sign this ELN entry"]),
+    ...R.filter(x=>x.status==="Requested").map(x=>[`#lims`,x.sampleId,"Receive this sample in the LIMS"]),
+    ...L.filter(s=>sampleStatus(s)==="Ready for review").map(s=>[`#sample-${s.id}`,s.id,"Review and approve results"]),
+    ...L.filter(s=>sampleStatus(s)==="Approved").map(s=>[`#sample-${s.id}`,s.id,"Issue the report"]),
+    ...L.filter(s=>/Registered|In testing/.test(sampleStatus(s))).map(s=>[`#sample-${s.id}`,s.id,"Enter test results and reports"])];
+  const acts=[];for(const[c2,hrefp] of [["entries","entry"],["requests",""],["samples","sample"]])for(const d of Object.values(S[c2]))(d.history||[]).forEach(h=>acts.push({...h,id:d.id,href:hrefp?`#${hrefp}-${d.id}`:"#requests"}));
+  acts.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const blank=!E.length&&!R.length&&!L.length;
+  return `<div class="head"><div><h1>Lab overview</h1><p class="sub">Follow each sample from ELN entry to issued report.</p></div>${S.readOnly?"":`<div class="row"><button class="btn pri" data-act="new-entry">New ELN entry</button></div>`}</div>
+  ${blank?`<div class="empty">No records yet. Choose New ELN entry to add the first experiment.</div>`:""}
+  <div class="flow">${stages.map(([t,n,h])=>`<a class="stage" href="#${h}"><b>${n}</b><span>${t}</span></a>`).join("")}</div>
+  <div class="panel"><h2>Find a sample</h2><form class="row" data-form="find"><input id="find" aria-label="Sample ID" list="ids" placeholder="Type a sample ID" style="flex:1 1 240px"><datalist id="ids">${L.map(s=>`<option value="${esc(s.id)}">`).join("")}</datalist><button class="btn">Open sample sheet</button></form></div>
+  <div class="panel"><h2>Next actions</h2>${todo.length?`<div class="tw"><table>${todo.slice(0,12).map(([h,id,t])=>`<tr class="link" data-href="${esc(h)}"><td class="mono">${esc(id)}</td><td><a href="${esc(h)}">${esc(t)}</a></td></tr>`).join("")}</table></div>`:`<div class="empty">Nothing is waiting right now.</div>`}</div>
+  <div class="panel"><h2>Recent activity</h2>${acts.length?`<div class="log">${acts.slice(0,8).map(a=>`<div>${esc(when(a.at))}: <a class="mono" href="${esc(a.href)}">${esc(a.id)}</a>, ${esc(a.action)} (${esc(whoName(a))})</div>`).join("")}</div>`:`<div class="empty">Changes will be listed here.</div>`}</div>`;
+}
+
+/* ---------- ELN ---------- */
+function vEln(){
+  const E=list(S.entries);
+  return `<div class="head"><div><h1>ELN entries</h1><p class="sub">One entry for each experiment. Entry IDs are issued in order.</p></div>${S.readOnly?"":`<button class="btn pri" data-act="new-entry">New ELN entry</button>`}</div>
+  <div class="panel">${E.length?`<div class="tw"><table><tr><th>Entry ID</th><th>Project</th><th>Title</th><th>Chemist</th><th>Yield</th><th>Status</th></tr>${E.map(e=>`<tr class="link" data-href="#entry-${esc(e.id)}"><td class="mono"><a href="#entry-${esc(e.id)}">${esc(e.id)}</a></td><td>${esc(e.project)}</td><td>${esc(e.title)}</td><td>${esc(e.chemist)}</td><td class="calc">${fix(calc(e).pct,1)}%</td><td>${chip(e.status)}</td></tr>`).join("")}</table></div>`:`<div class="empty">No entries yet. Choose New ELN entry to issue the first ID.</div>`}</div>`;
+}
+function scheme(e){
+  const id=e.schemeFileId;if(!id)return "";
+  if(S.images[id])return `<div class="scheme"><img src="${S.images[id]}" alt="Reaction scheme"></div>`;
+  if(S.images[id]===undefined){S.images[id]=null;api("getImage",id).then(u=>{S.images[id]=u;soft()}).catch(()=>{})}
+  return `<div class="empty">Loading the reaction image.</div>`;
+}
+function vEntry(id){
+  const doc=S.entries[id];if(!doc)return `<h1>Entry not found</h1><div class="empty">${esc(id)} isn't in the ELN. <a href="#eln">Back to entries</a></div>`;
+  if(!S.draft||S.draft.id!==id||!S.dirty){S.draft=clone(doc);S.draft.checks=S.draft.checks||[]}
+  const e=S.draft,lock=e.status!=="Draft"||S.readOnly,dis=lock?"disabled":"",c=calc(e);
+  const fld=(k,l,cls="")=>`<label class="f ${cls}">${l}<input id="f-${k}" data-bind="${k}" value="${esc(e[k])}" ${dis}></label>`;
+  const area=(k,l)=>`<label class="f w">${l}<textarea id="f-${k}" data-bind="${k}" ${dis}>${esc(e[k])}</textarea></label>`;
+  const self=(e.history||[]).some(h=>h.action==="Submitted for review"&&h.email===S.me.email);
+  const y=e.start?String(e.start).slice(0,4):String(new Date().getFullYear());
+  return `<div class="head"><div><p class="sub"><a href="#eln">ELN entries</a> / LAB-Working &gt; Chemistry &gt; ${esc(y)} &gt; ${esc(e.project||"Project")}</p><h1 class="mono" style="font-size:25px">${esc(e.id)}</h1></div><div class="row">${chip(e.status)}${!lock?`<button class="btn pri" data-act="save-entry" id="save">${S.dirty?"Save changes":"Saved"}</button>`:""}</div></div>
+  <div class="panel"><h2>1. Details</h2><div class="form">${fld("title","Title","w")}${fld("project","Project")}${fld("chemist","Chemist")}<label class="f">Start<input id="f-start" type="datetime-local" data-bind="start" value="${esc(e.start)}" ${dis}></label>${area("objective","Objective")}${area("safety","Safety notes")}<label class="f w">Reference link (optional)<input id="f-drive" type="url" data-bind="drive" value="${esc(e.drive)}" placeholder="https://..." ${dis}></label>${e.drive&&safeUrl(e.drive)?`<a href="${esc(safeUrl(e.drive))}" target="_blank" rel="noopener">Open linked file</a>`:""}</div></div>
+  <div class="panel"><h2>2. Reaction structure</h2>${scheme(e)||`<div class="empty">Draw the reaction in your drawing software, export a PNG, then add it here.</div>`}
+  ${!lock&&S.assets?`<label class="f" style="max-width:340px">Reaction image (PNG or JPG)<input id="up-scheme" type="file" accept="image/png,image/jpeg" data-up="scheme"></label>`:(!lock?``:"")}
+  <div class="tw"><table><tr><th>Compound</th><th>Role</th><th>SMILES (makes it searchable)</th>${lock?"":"<th></th>"}</tr>${(e.compounds||[]).map((x,i)=>`<tr><td><input id="c-n${i}" aria-label="Compound name" data-bind="compounds.${i}.name" value="${esc(x.name)}" ${dis}></td><td><input id="c-r${i}" aria-label="Role" data-bind="compounds.${i}.role" value="${esc(x.role)}" ${dis}></td><td><input id="c-s${i}" aria-label="SMILES" class="mono" data-bind="compounds.${i}.smiles" value="${esc(x.smiles)}" ${dis}></td>${lock?"":`<td><button class="btn sm" data-act="del-row" data-k="compounds" data-i="${i}">Remove</button></td>`}</tr>`).join("")}</table></div>${lock?"":`<div><button class="btn sm" data-act="add-row" data-k="compounds">Add compound</button></div>`}</div>
+  <div class="panel"><h2>3. Reagents and calculations</h2><div class="tw"><table><tr><th>Limiting</th><th>Material</th><th>MW (g/mol)</th><th>Mass (g)</th><th>mmol</th><th>Equiv</th><th>Lot no.</th>${lock?"":"<th></th>"}</tr>${(e.reagents||[]).map((x,i)=>`<tr><td><input type="radio" name="lim" aria-label="Limiting reagent" data-limit="${i}" ${(e.limiting|0)===i?"checked":""} ${dis}></td><td><input id="r-m${i}" aria-label="Material" data-bind="reagents.${i}.material" value="${esc(x.material)}" ${dis}></td><td><input id="r-w${i}" aria-label="Molecular weight" inputmode="decimal" data-bind="reagents.${i}.mw" value="${esc(x.mw)}" ${dis}></td><td><input id="r-g${i}" aria-label="Mass" inputmode="decimal" data-bind="reagents.${i}.mass" value="${esc(x.mass)}" ${dis}></td><td class="calc" id="mm${i}">${fix(c.rows[i].mmol,1)}</td><td class="calc" id="eq${i}">${fix(c.rows[i].equiv,2)}</td><td><input id="r-l${i}" aria-label="Lot number" data-bind="reagents.${i}.lot" value="${esc(x.lot)}" ${dis}></td>${lock?"":`<td><button class="btn sm" data-act="del-row" data-k="reagents" data-i="${i}">Remove</button></td>`}</tr>`).join("")}</table></div>${lock?"":`<div><button class="btn sm" data-act="add-row" data-k="reagents">Add reagent</button></div>`}<p class="sub">mmol = mass ÷ MW × 1000. Equiv = mmol ÷ mmol of limiting reagent.</p></div>
+  <div class="panel"><h2>4. Procedure and observations</h2><div class="tw"><table><tr><th>Time</th><th>Step performed</th><th>Temp (°C)</th><th>Observation</th>${lock?"":"<th></th>"}</tr>${(e.steps||[]).map((x,i)=>`<tr><td><input id="s-t${i}" aria-label="Time" data-bind="steps.${i}.time" value="${esc(x.time)}" ${dis}></td><td><input id="s-s${i}" aria-label="Step" data-bind="steps.${i}.step" value="${esc(x.step)}" ${dis}></td><td><input id="s-c${i}" aria-label="Temperature" data-bind="steps.${i}.temp" value="${esc(x.temp)}" ${dis}></td><td><input id="s-o${i}" aria-label="Observation" data-bind="steps.${i}.obs" value="${esc(x.obs)}" ${dis}></td>${lock?"":`<td><button class="btn sm" data-act="del-row" data-k="steps" data-i="${i}">Remove</button></td>`}</tr>`).join("")}</table></div>${lock?"":`<div><button class="btn sm" data-act="add-row" data-k="steps">Add step</button></div>`}</div>
+  <div class="panel"><h2>5. Yield</h2><div class="form">${fld("product","Product")}${fld("batch","Batch")}${fld("productMw","Product MW (g/mol)")}${fld("actualYield","Actual yield (g)")}</div>
+  <div class="row"><span>Theoretical yield: <b class="calc" id="theo">${fix(c.theo,2)} g</b></span><span>Percent yield: <b class="calc" id="pct">${fix(c.pct,1)}%</b></span></div><p class="sub">This assumes one mole of product for each mole of limiting reagent. Add a note in the procedure if your reaction differs.</p></div>
+  <div class="panel"><h2>6. Check and submit</h2>
+  ${e.status==="Draft"&&!S.readOnly?`${CHECKS.map((t,i)=>`<label class="chk"><input id="chk${i}" type="checkbox" data-check="${i}" ${e.checks[i]?"checked":""}>${esc(t)}</label>`).join("")}<div><button class="btn pri" data-act="submit-entry">Submit for review</button></div>`:""}
+  ${e.status==="Submitted"&&!S.readOnly?`${self?`<div class="note">You submitted this entry. A different person should review it.</div>`:""}<div class="row"><button class="btn pri" data-act="sign-entry">Sign as reviewer</button></div><label class="f">Reason for reopening<input id="reason" placeholder="What needs correcting, and why"></label><div><button class="btn" data-act="reopen-entry">Reopen entry</button></div>`:""}
+  ${e.status==="Signed"?`<p class="sub">This entry is signed and locked. To correct it, add a new entry that names this one and gives the reason.</p>${e.pdfPath?`<a href="#" data-act="open-file" data-file="${esc(e.pdfPath)}">Open the signed PDF</a>`:""}`:""}
+  ${e.status!=="Draft"&&!S.readOnly&&!list(S.requests).some(r=>r.entryId===e.id)?`<div><button class="btn" data-act="req-from" data-id="${esc(e.id)}">Request analysis</button></div>`:""}</div>
+  ${history(e)}`;
+}
+const history=d=>`<div class="panel"><h2>Activity</h2><div class="log">${[...(d.history||[])].reverse().map(h=>`<div>${esc(when(h.at))}: ${esc(h.action)} (${esc(whoName(h))})</div>`).join("")||"No activity yet."}</div></div>`;
+function recalc(){
+  const e=S.draft;if(!e||!e.reagents)return;const c=calc(e);
+  c.rows.forEach((r,i)=>{const a=$("#mm"+i),b=$("#eq"+i);if(a)a.textContent=fix(r.mmol,1);if(b)b.textContent=fix(r.equiv,2)});
+  const t=$("#theo"),p=$("#pct");if(t)t.textContent=fix(c.theo,2)+" g";if(p)p.textContent=fix(c.pct,1)+"%";
+}
+
+/* ---------- requests ---------- */
+function vRequests(){
+  const R=list(S.requests);
+  return `<div class="head"><div><h1>Sample requests</h1><p class="sub">Ask the analytical lab for tests. The sample ID comes from the ELN entry.</p></div>${S.readOnly?"":`<a class="btn pri" href="#new-request">New sample request</a>`}</div>
+  <div class="panel">${R.length?`<div class="tw"><table><tr><th>Request</th><th>Sample ID</th><th>Product</th><th>Tests</th><th>Status</th></tr>${R.map(r=>`<tr class="link" data-href="${S.samples[r.sampleId]?`#sample-${esc(r.sampleId)}`:"#lims"}"><td class="mono">${esc(r.id)}</td><td class="mono">${esc(r.sampleId)}</td><td>${esc(r.product)}</td><td>${esc((r.tests||[]).join(", "))}</td><td>${chip(r.status)}</td></tr>`).join("")}</table></div>`:`<div class="empty">No requests yet. Submit an ELN entry first, then raise a request.</div>`}</div>`;
+}
+function vNewRequest(){
+  const E=list(S.entries).filter(e=>e.status!=="Draft");
+  if(!S.draft||S.draft.kind!=="req"){const f=S.reqFrom&&S.entries[S.reqFrom]?S.reqFrom:(E[0]?E[0].id:"");S.draft={kind:"req",entryId:f,quantity:"",storage:"",tests:[...TESTS]}}
+  const d=S.draft,e=S.entries[d.entryId];
+  if(!E.length)return `<h1>New sample request</h1><div class="empty">Submit an ELN entry for review first. Requests are raised from submitted entries.</div>`;
+  return `<div class="head"><div><p class="sub"><a href="#requests">Sample requests</a></p><h1>New sample request</h1></div></div>
+  <div class="panel"><div class="form"><label class="f">Source ELN entry<select id="rq-e" data-reqentry>${E.map(x=>`<option value="${esc(x.id)}" ${x.id===d.entryId?"selected":""}>${esc(x.id)}: ${esc(x.title)}</option>`).join("")}</select></label>
+  <label class="f">Sample ID<input id="rq-s" class="mono" value="${esc(e?nextSample(e.id):"")}" disabled></label>
+  <label class="f">Product and batch<input id="rq-p" value="${esc(e?[e.product,e.batch].filter(Boolean).join(", "):"")}" disabled></label>
+  <label class="f">Quantity<input id="rq-q" data-bind="quantity" value="${esc(d.quantity)}" placeholder="2 g"></label>
+  <label class="f">Storage<input id="rq-t" data-bind="storage" value="${esc(d.storage)}" placeholder="Ambient, closed container"></label></div>
+  ${e?scheme(e):""}
+  <h2>Tests needed</h2><div class="row">${TESTS.map(t=>`<label class="chk"><input id="rq-${t}" type="checkbox" data-test="${t}" ${d.tests.includes(t)?"checked":""}>${TESTNAME[t]}</label>`).join("")}</div>
+  <div><button class="btn pri" data-act="submit-request">Submit request</button></div></div>`;
+}
+
+/* ---------- LIMS ---------- */
+function vLims(){
+  const wait=list(S.requests).filter(r=>r.status==="Requested"),L=list(S.samples);
+  return `<div class="head"><div><h1>LIMS tracker</h1><p class="sub">See where each sample is. Open a sample to enter results and reports.</p></div></div>
+  <div class="panel"><h2>Samples to receive</h2>${wait.length?`<div class="tw"><table><tr><th>Sample ID</th><th>Request</th><th>Product</th><th>Tests</th><th>Condition</th><th></th></tr>${wait.map((r,i)=>`<tr><td class="mono">${esc(r.sampleId)}</td><td class="mono">${esc(r.id)}</td><td>${esc(r.product)}</td><td>${esc((r.tests||[]).join(", "))}</td><td><select id="cond${i}" aria-label="Condition"><option>Sealed and labelled</option><option>Label unclear</option><option>Container damaged</option></select></td><td>${S.readOnly?"":`<button class="btn sm pri" data-act="receive" data-id="${esc(r.id)}" data-cond="cond${i}">Receive</button>`}</td></tr>`).join("")}</table></div>`:`<div class="empty">No samples are waiting to be received.</div>`}</div>
+  <div class="panel"><h2>Samples in the lab</h2>${L.length?`<div class="tw"><table><tr><th>Sample ID</th><th>Product</th><th>Analytical entry</th>${TESTS.map(t=>`<th>${t}</th>`).join("")}<th>Status</th></tr>${L.map(s=>`<tr class="link" data-href="#sample-${esc(s.id)}"><td class="mono"><a href="#sample-${esc(s.id)}">${esc(s.id)}</a></td><td>${esc(s.product)}</td><td class="mono">${esc(s.anaEntry)}</td>${TESTS.map(t=>{const x=(s.tests||{})[t];return `<td>${x?chip(x.outcome&&x.outcome!=="Pending"&&x.result?"Done":"Pending"):"–"}</td>`}).join("")}<td>${chip(sampleStatus(s))}</td></tr>`).join("")}</table></div>`:`<div class="empty">Received samples will appear here.</div>`}</div>`;
+}
+function vSample(id){
+  const doc=S.samples[id];if(!doc)return `<h1>Sample not found</h1><div class="empty">${esc(id)} isn't in the LIMS. <a href="#lims">Back to tracker</a></div>`;
+  if(!S.draft||S.draft.id!==id||!S.dirty)S.draft=clone(doc);
+  const s=S.draft,st=sampleStatus(doc),lock=!!doc.approved||S.readOnly,dis=lock?"disabled":"",keys=Object.keys(s.tests||{});
+  const anyFail=keys.some(k=>/Fail|Not confirmed/.test(s.tests[k].outcome||""));
+  const self=(doc.history||[]).some(h=>/Results saved/.test(h.action)&&h.email===S.me.email);
+  return `<div class="head"><div><p class="sub"><a href="#lims">LIMS tracker</a> / LAB-Working &gt; Analytical &gt; ${esc(String(s.anaEntry).slice(4,8))} &gt; ${esc(s.anaEntry)}</p><h1 class="mono" style="font-size:25px">${esc(s.id)}</h1><p class="sub">${esc([s.product,s.batch].filter(Boolean).join(", "))}. Request <span class="mono">${esc(s.requestId)}</span>. Source entry <a class="mono" href="#entry-${esc(s.entryId)}">${esc(s.entryId)}</a>. Condition: ${esc(s.condition)}.</p></div><div class="row">${chip(st)}<a class="btn" href="#sheet-${esc(s.id)}">Sample sheet</a>${!lock?`<button class="btn pri" data-act="save-sample" id="save">${S.dirty?"Save changes":"Saved"}</button>`:""}</div></div>
+  <div class="tests">${keys.map(k=>{const t=s.tests[k],b=`tests.${k}`;return `<div class="tcard"><div class="row" style="justify-content:space-between"><h2>${esc(TESTNAME[k]||k)}</h2>${chip(t.outcome&&t.outcome!=="Pending"?t.outcome:"Pending")}</div>
+  <div class="form" style="grid-template-columns:1fr 1fr"><label class="f">Method<input id="${k}-m" data-bind="${b}.method" value="${esc(t.method)}" ${dis}></label><label class="f">Instrument<input id="${k}-i" data-bind="${b}.instrument" value="${esc(t.instrument)}" ${dis}></label></div>
+  <label class="f">Key result<input id="${k}-r" data-bind="${b}.result" value="${esc(t.result)}" ${dis}></label>
+  <div class="form" style="grid-template-columns:1fr 1fr"><label class="f">Limit or expected<input id="${k}-l" data-bind="${b}.limit" value="${esc(t.limit)}" ${dis}></label><label class="f">Outcome<select id="${k}-o" data-bind="${b}.outcome" ${dis}>${OUTCOMES.map(o=>`<option ${o===(t.outcome||"Pending")?"selected":""}>${o}</option>`).join("")}</select></label></div>
+  <div><b style="font-size:13px;color:var(--mute)">PDF report</b><div>${report(t)}</div></div>
+  ${!lock&&S.assets?`<label class="f">Upload PDF, named ${esc(s.id)}_${k}_01.pdf<input id="${k}-u" type="file" accept="application/pdf" data-up="report" data-test="${k}"></label>`:""}
+  ${!lock?`<label class="f">Or paste a link<input id="${k}-d" type="url" data-bind="${b}.link" value="${esc(t.link)}" placeholder="https://..."></label>`:""}</div>`}).join("")}</div>
+  <p class="sub">A PDF is a copy. Original instrument data stays in each instrument's data system.</p>
+  <div class="panel"><h2>Review and report</h2>
+  ${anyFail?`<div class="note">A result failed or wasn't confirmed. Investigate before approving.</div>`:""}
+  ${st==="Ready for review"&&self?`<div class="note">You saved these results. A different person should approve them.</div>`:""}
+  ${S.readOnly?"":`<div class="row">${st==="Ready for review"?`<button class="btn pri" data-act="approve">Approve results</button>`:""}${st==="Approved"?`<button class="btn pri" data-act="issue">Issue report</button>`:""}</div>`}
+  ${!/Ready|Approved|issued/.test(st)?`<p class="sub">Enter a key result and outcome for every test to continue.</p>`:""}${st==="Report issued"?`<p class="sub">The report is issued and these results are locked.</p>`:""}</div>
+  ${history(doc)}`;
+}
+function report(t){
+  const a=[];if(t.fileId)a.push(`<a href="#" data-act="open-file" data-file="${esc(t.fileId)}">${esc(t.fileName||"Open PDF")}</a>`);
+  const u=safeUrl(t.link);if(u)a.push(`<a href="${esc(u)}" target="_blank" rel="noopener">Link</a>`);
+  if(!a.length&&t.fileName)a.push(`<span class="mono">${esc(t.fileName)}</span>`);
+  return a.join(" · ")||`<span style="color:var(--mute)">None added</span>`;
+}
+
+/* ---------- sample sheets ---------- */
+function vSheets(){
+  const L=list(S.samples);
+  return `<div class="head"><div><h1>Sample sheets</h1><p class="sub">One page for each sample, from synthesis to analytical data.</p></div></div>
+  <div class="panel">${L.length?`<div class="tw"><table><tr><th>Sample ID</th><th>Product</th><th>Batch</th><th>Status</th></tr>${L.map(s=>`<tr class="link" data-href="#sheet-${esc(s.id)}"><td class="mono"><a href="#sheet-${esc(s.id)}">${esc(s.id)}</a></td><td>${esc(s.product)}</td><td>${esc(s.batch)}</td><td>${chip(sampleStatus(s))}</td></tr>`).join("")}</table></div>`:`<div class="empty">Sheets appear once a sample is received in the LIMS.</div>`}</div>`;
+}
+function sheetBody(s,e,dl){
+  const c=e?calc(e):{},st=sampleStatus(s),keys=Object.keys(s.tests||{});
+  const lim=e&&e.reagents?e.reagents[e.limiting|0]:null;
+  const hist=(s.history||[]);const by=a=>{const h=[...hist].reverse().find(x=>x.action===a);return h?whoName(h):"–"};
+  const trail=[["Requested",true],["Received",true],["Tested",/Ready|Approved|issued/.test(st)],["Approved",!!s.approved],["Report issued",!!s.reportIssued]];
+  return `<div class="grid"><table><tr><td><b>Product</b></td><td>${esc(s.product)}</td><td><b>Batch</b></td><td>${esc(s.batch)}</td></tr><tr><td><b>Project</b></td><td>${esc(e?e.project:"")}</td><td><b>Request</b></td><td class="mono">${esc(s.requestId)}</td></tr></table></div>
+  <div class="two"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><h2>Synthesis</h2>${dl?"":(e?scheme(e):"")}
+  <table><tr><td><b>ELN entry</b></td><td class="mono">${esc(s.entryId)}</td></tr><tr><td><b>Chemist</b></td><td>${esc(e?e.chemist:"")}</td></tr><tr><td><b>Scale</b></td><td>${lim?`${esc(lim.mass)} g ${esc(lim.material)}`:"–"}</td></tr><tr><td><b>Yield</b></td><td>${e?`${esc(e.actualYield)} g, ${fix(c.pct,1)}%`:"–"}</td></tr></table></div>
+  <div style="min-width:0;display:flex;flex-direction:column;gap:8px"><h2>Analytical data: <span class="mono">${esc(s.anaEntry)}</span></h2><div class="tw"><table><tr><th>Test</th><th>Key result</th><th>Outcome</th><th>Report</th></tr>${keys.map(k=>{const t=s.tests[k];return `<tr><td><b>${esc(TESTNAME[k]||k)}</b></td><td>${esc(t.result)}</td><td>${dl?esc(t.outcome):chip(t.outcome||"Pending")}</td><td>${dl?esc(t.fileName||""):report(t)}</td></tr>`}).join("")}</table></div></div></div>
+  <div class="trail">${trail.map(([t,on])=>`<span class="chip ${on?"good":""}">${on?"✓ ":""}${t}</span>`).join("")}</div>
+  <table><tr><td><b>Received</b></td><td>${esc(by("Sample received"))}</td><td><b>Approved by</b></td><td>${esc(by("Results approved"))}</td></tr></table>`;
+}
+function vSheet(id){
+  const s=S.samples[id];if(!s)return `<h1>Sample not found</h1><div class="empty">${esc(id)} isn't in the LIMS. <a href="#sheets">Back to sheets</a></div>`;
+  const e=S.entries[s.entryId];
+  return `<div class="head"><div><p class="sub"><a href="#sheets">Sample sheets</a></p></div><div class="row"><a class="btn" href="#sample-${esc(id)}">Open sample</a>${s.sheetPdfPath?`<a class="btn" href="#" data-act="open-file" data-file="${esc(s.sheetPdfPath)}">Open PDF</a>`:""}</div></div>
+  <div class="sheet"><div class="top"><img src="data:image/jpeg;base64,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" alt="Oceanic Pharmachem logo"><div style="text-align:center"><div style="font:700 22px var(--display)">Sample sheet</div><div class="mono" style="color:var(--accent);font-weight:600">${esc(s.id)}</div></div>${chip(sampleStatus(s))}</div>${sheetBody(s,e)}</div>`;
+}
+
+/* ---------- actions ---------- */
+function setPath(o,p,v){const k=p.split(".");let c=o;for(let i=0;i<k.length-1;i++)c=c[k[i]];c[k[k.length-1]]=v}
+function mark(){S.dirty=true;const b=$("#save");if(b)b.textContent="Save changes"}
+const busy=async(fn)=>{if(S.busy)return;S.busy=true;document.body.style.cursor="progress";try{await fn()}catch(e){fail(e)}finally{S.busy=false;document.body.style.cursor=""}};
+const acts={
+  "new-entry"(){busy(async()=>{const d=JSON.parse(await api("createEntry"));S.entries[d.id]=d;go("entry-"+d.id)})},
+  "save-entry"(){busy(async()=>{const d=JSON.parse(await api("saveEntry",JSON.stringify(S.draft)));S.entries[d.id]=d;S.dirty=false;S.draft=null;toast("Entry saved");render()})},
+  "submit-entry"(){busy(async()=>{const d=JSON.parse(await api("submitEntry",JSON.stringify(S.draft)));S.entries[d.id]=d;S.dirty=false;S.draft=null;toast("Submitted for review");render()})},
+  "sign-entry"(){const id=S.draft.id;busy(async()=>{const d=JSON.parse(await api("signEntry",id));S.entries[id]=d;S.dirty=false;S.draft=null;toast("Entry signed. The PDF is saved in LAB-Records.");render()})},
+  "reopen-entry"(){const id=S.draft.id,r=($("#reason").value||"").trim();if(!r){toast("Add the reason for reopening.");return}busy(async()=>{const d=JSON.parse(await api("reopenEntry",id,r));S.entries[id]=d;S.dirty=false;S.draft=null;render()})},
+  "add-row"(el){const k=el.dataset.k;S.draft[k]=S.draft[k]||[];S.draft[k].push({compounds:{name:"",role:"",smiles:""},reagents:{material:"",mw:"",mass:"",lot:""},steps:{time:"",step:"",temp:"",obs:""}}[k]);S.dirty=true;render()},
+  "del-row"(el){const k=el.dataset.k;S.draft[k].splice(+el.dataset.i,1);if(k==="reagents"&&(S.draft.limiting|0)>=S.draft[k].length)S.draft.limiting=0;S.dirty=true;render()},
+  "req-from"(el){S.reqFrom=el.dataset.id;go("new-request")},
+  "submit-request"(){const d=S.draft;if(!d.tests.length){toast("Choose at least one test.");return}if(!d.quantity){toast("Add the quantity.");return}busy(async()=>{const r=JSON.parse(await api("createRequest",JSON.stringify(d)));S.requests[r.id]=r;S.dirty=false;S.draft=null;S.reqFrom=null;toast("Request "+r.id+" submitted");go("requests")})},
+  receive(el){const cond=$("#"+el.dataset.cond).value;busy(async()=>{const id=await api("receiveSample",el.dataset.id,cond);await refresh();toast("Sample received");go("sample-"+id)})},
+  "save-sample"(){busy(async()=>{const d=JSON.parse(await api("saveSample",JSON.stringify(S.draft)));S.samples[d.id]=d;S.dirty=false;S.draft=null;toast("Results saved");render()})},
+  approve(){if(S.dirty){toast("Save your changes first.");return}const id=S.draft.id;busy(async()=>{const d=JSON.parse(await api("approveSample",id));S.samples[id]=d;S.draft=null;render()})},
+  "open-file"(el){const w=window.open("about:blank","_blank");api("fileUrl",el.dataset.file).then(u=>{if(w)w.location=u;else location.href=u}).catch(e=>{if(w)w.close();fail(e)})},
+  "sign-out"(){SB.auth.signOut()},
+  "magic-link"(){const em=($("#l-email").value||"").trim();if(!em){toast("Enter your email first.");return}
+    SB.auth.signInWithOtp({email:em,options:{shouldCreateUser:false,emailRedirectTo:location.origin}}).then(({error})=>{$("#l-msg").textContent=error?error.message:"Check your inbox for the sign-in link."})},
+  issue(){const id=S.draft.id;busy(async()=>{const d=JSON.parse(await api("issueReport",id));S.samples[id]=d;S.draft=null;toast("Report issued");go("sheet-"+id)})}
+};
+document.addEventListener("click",ev=>{
+  const a=ev.target.closest("[data-act]");
+  if(a){ev.preventDefault();const f=acts[a.dataset.act];if(f)f(a);return}
+  const l=ev.target.closest('a[href^="#"]');
+  if(l){ev.preventDefault();go(l.getAttribute("href").slice(1));return}
+  const r=ev.target.closest("tr[data-href]");if(r&&!ev.target.closest("a,input,select,button"))go(r.dataset.href.slice(1));
+});
+document.addEventListener("input",ev=>{
+  const t=ev.target,b=t.dataset.bind;
+  if(b&&S.draft){setPath(S.draft,b,t.value);mark();recalc()}
+});
+const readB64=f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(f)});
+document.addEventListener("change",async ev=>{
+  const t=ev.target,d=S.draft;
+  if(t.dataset.limit!=null){d.limiting=+t.dataset.limit;mark();recalc()}
+  if(t.dataset.check!=null){d.checks[+t.dataset.check]=t.checked;mark()}
+  if(t.dataset.test&&d&&d.kind==="req"){d.tests=d.tests.filter(x=>x!==t.dataset.test);if(t.checked)d.tests.push(t.dataset.test);d.tests.sort((a,b)=>TESTS.indexOf(a)-TESTS.indexOf(b))}
+  if(t.hasAttribute("data-reqentry")){d.entryId=t.value;render()}
+  if(t.dataset.up&&t.files[0]){
+    const f=t.files[0];if(f.size>20*1024*1024){toast("That file is over 20 MB. Choose a smaller one.");return}
+    toast("Uploading "+f.name);
+    busy(async()=>{
+      const slot=JSON.parse(await api("uploadFile",JSON.stringify({kind:t.dataset.up,ownerId:d.id,project:d.project,start:d.start,name:f.name,mime:f.type,size:f.size})));
+      const up=await SB.storage.from(slot.bucket).uploadToSignedUrl(slot.path,slot.token,f,{contentType:f.type});
+      if(up.error)throw new Error("The upload didn't finish: "+up.error.message);
+      const r={fileId:slot.fileId,fileName:slot.fileName};
+      if(t.dataset.up==="scheme"){d.schemeFileId=r.fileId;S.images[r.fileId]="data:"+f.type+";base64,"+await readB64(f)}
+      else{const x=d.tests[t.dataset.test];x.fileId=r.fileId;x.fileName=r.fileName}
+      S.dirty=true;toast("Uploaded. Choose Save changes to keep it.");render()
+    });
+  }
+});
+document.addEventListener("focusout",()=>setTimeout(()=>{if(S.stale&&!S.dirty&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)))render()},0));
+document.addEventListener("submit",ev=>{ev.preventDefault();const f=ev.target;
+  if(f.dataset.form==="login"){const em=$("#l-email").value.trim(),pw=$("#l-pass").value;if(!pw){toast("Enter your password, or ask for a sign-in link.");return}
+    $("#l-msg").textContent="Signing in…";SB.auth.signInWithPassword({email:em,password:pw}).then(({error})=>{if(error)$("#l-msg").textContent=error.message==="Invalid login credentials"?"That email and password don't match.":error.message});return}if(f.dataset.form==="find"){const v=$("#find").value.trim();if(S.samples[v])go("sheet-"+v);else toast("No sample has that ID.")}});
+navOnly();
+boot();
+</script>
+
+</body></html>
