@@ -1,0 +1,16 @@
+{
+  "name": "oceanic-lab-workflow",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Oceanic Pharmachem R&D ELN + LIMS workflow on Netlify and Supabase",
+  "scripts": {
+    "test": "node test/flow.test.mjs",
+    "dev:mock": "node test/dev-server.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "pdfmake": "^0.2.15"
+  }
+}

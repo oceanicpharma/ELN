@@ -1,0 +1,17 @@
+# Netlify settings for the Oceanic Lab Workflow.
+[build]
+  publish = "public"          # the web page
+  command = ""                # nothing to build
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # The PDF library reads its font files from disk, so ship it as-is instead of bundling it.
+  external_node_modules = ["pdfmake"]
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
